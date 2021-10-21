@@ -1,0 +1,15 @@
+apiVersion: extensions/v1beta1 
+kind: Ingress
+metadata: 
+  name: mari-api-utility-preprod
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: mari-api-utility-preprod.mari.arctic.true.th
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: mari-api-utility-preprod
+          servicePort: 3001

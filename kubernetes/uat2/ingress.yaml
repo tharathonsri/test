@@ -1,0 +1,15 @@
+apiVersion: extensions/v1beta1 
+kind: Ingress
+metadata: 
+  name: mari-api-utility-uat2
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: mari-api-utility-uat2.mari.arctic.true.th
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: mari-api-utility-uat2
+          servicePort: 3001

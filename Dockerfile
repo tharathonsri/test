@@ -1,11 +1,13 @@
-FROM node:14.16.1-buster-slim
-RUN apt-get update && \
-    apt-get install -y 
-RUN apt-get install -y tzdata
-ENV TZ Asia/Bangkok
-    
-EXPOSE 3000
-WORKDIR /app
-COPY . /app
-RUN npm install
-CMD [ "npm", "start" ]
+FROM node:10-alpine AS builder
+ENV http_proxy=http://pxys2s1.true.th:80 https_proxy=http://pxys2s1.true.th:80
+RUN apk add --update curl  && rm -rf /var/cache/apk/*
+WORKDIR /usr/src
+COPY package.json ./
+RUN npm i --production
+COPY . .
+
+FROM node:10-alpine
+WORKDIR /usr/src
+COPY --from=builder /usr/src .
+EXPOSE 3001
+CMD ["npm", "run", "serve"]

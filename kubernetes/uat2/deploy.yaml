@@ -1,0 +1,76 @@
+apiVersion: apps/v1 
+kind: Deployment
+metadata:
+  name: mari-api-utility-uat2
+  labels:
+    app: mari-api-utility-uat2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mari-api-utility-uat2
+  template:
+    metadata:
+      labels:
+        app: mari-api-utility-uat2
+        
+    spec:
+      imagePullSecrets:
+      - name: regcred
+      containers:
+      - name: mari-api-utility-uat2
+        image: reghbpr01.dc1.true.th/mari/mari-api/utility:%VERSION%
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+        ports:
+        - containerPort: 3001
+        env:
+        - name: NODE_ENV
+          value: "uat2"
+        - name: TZ
+          value: "Asia/Jakarta"
+        - name: JAEGER_SERVICE_NAME
+          value: "mari-api-utility-uat2"
+        - name: JAEGER_AGENT_HOST
+          value: "jaeger-agent"  # default
+        - name: JAEGER_AGENT_PORT
+          value: "6832"
+      # sidecar agent
+      # - image: reghbpr01.dc1.true.th/jaegertracing/jaeger-agent:1.8.0
+      #   name: jaeger-agent
+      #   resources:
+      #     requests:
+      #       memory: "50Mi"
+      #       cpu: "100m"
+      #     limits:
+      #       memory: "50Mi"
+      #       cpu: "100m"
+      #   ports:
+      #   - containerPort: 5775
+      #     protocol: UDP
+      #   - containerPort: 6831
+      #     protocol: UDP
+      #   - containerPort: 6832
+      #     protocol: UDP
+      #   - containerPort: 5778
+      #     protocol: TCP
+      #   args: ["--collector.host-port=jaeger-collector.eam:14267"]
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mari-api-utility-uat2
+  labels:
+    app: mari-api-utility-uat2
+spec:
+  ports:
+  - port: 3001
+    protocol: TCP
+  selector:
+    app: mari-api-utility-uat2

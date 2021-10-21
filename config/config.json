@@ -1,0 +1,17 @@
+{
+    "port": 3001,
+    "AUTHEN": {
+        "users":{
+            "admin": "admin"
+        }
+    },
+    "ENCRYPT": {
+        "SALT": "mari-dev",
+        "PASSPHRASE": "mari-dev"
+    },
+    "HASH": {
+        "SALT": "mari-dev",
+        "PASSPHRASE": "mari-dev"
+    },
+    "ALLOW_SERVICE": ["masking", "encrypt", "decrypt", "hashing"]
+}

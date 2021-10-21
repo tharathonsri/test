@@ -1,0 +1,63 @@
+variables:
+  MICROSERVICE: "utility"
+
+cache:
+    untracked: true
+    key: "$CI_BUILD_REF_NAME"
+    paths:
+      - node_modules/
+
+stages: 
+  - build 
+  - deploy-uat2
+  - deploy-preprod
+
+docker-build:
+  stage: build
+  before_script:
+    - export COMMIT_TIME=$(git show -s --format=%ct $CI_COMMIT_SHA)
+    - export APP_VERSION=$(date -d @${COMMIT_TIME} +'%Y%m%d.%H%M').${CI_COMMIT_SHORT_SHA}
+    - docker login -u ${DOCKER_REGISTRY_USERNAME} -p ${DOCKER_REGISTRY_PASSWORD} ${DOCKER_REGISTRY} 
+  script:
+    - echo ${APP_VERSION}
+    - docker build -t ${DOCKER_REGISTRY}/mari/mari-api/${MICROSERVICE}:${APP_VERSION} .
+    - docker push ${DOCKER_REGISTRY}/mari/mari-api/${MICROSERVICE}:${APP_VERSION}
+    - docker rmi ${DOCKER_REGISTRY}/mari/mari-api/${MICROSERVICE}:${APP_VERSION}
+  #only:
+  #  - develop
+  #when: manual
+
+deploy-uat2:
+  needs: ["docker-build"]
+  stage: deploy-uat2
+  before_script:
+    - export COMMIT_TIME=$(git show -s --format=%ct $CI_COMMIT_SHA)
+    - export APP_VERSION=$(date -d @${COMMIT_TIME} +'%Y%m%d.%H%M').${CI_COMMIT_SHORT_SHA}
+  script:
+    - sed -i -- "s/%VERSION%/${APP_VERSION}/g"  kubernetes/uat2/deploy.yaml
+    - kubectl --kubeconfig=/home/gitlab-runner/.kube/config-mari delete -f kubernetes/uat2/deploy.yaml
+    - kubectl --kubeconfig=/home/gitlab-runner/.kube/config-mari apply -f kubernetes/uat2/deploy.yaml
+    - kubectl --kubeconfig=/home/gitlab-runner/.kube/config-mari apply -f kubernetes/uat2/ingress.yaml
+    - export COMMIT_TIME=$(git show -s --format=%ct $CI_COMMIT_SHA)
+    - echo "send line noti dev room"
+    - 'curl -X POST -H "Authorization: Bearer GdoBOSxvHraGhtK2tgVpZWJujT6EgfF3wYJtsxMqHlT" -F "message=[${CI_PROJECT_NAME} | Pipeline ${CI_COMMIT_SHORT_SHA} deploy success for ${CI_COMMIT_REF_NAME}][version:${APP_VERSION}][${CI_COMMIT_TITLE}][${CI_COMMIT_MESSAGE}] [by ${GITLAB_USER_LOGIN}]" https://notify-api.line.me/api/notify'
+  dependencies:
+    - docker-build
+  when: manual
+
+deploy-preprod:
+  needs: ["docker-build"]
+  stage: deploy-preprod
+  before_script:
+    - export COMMIT_TIME=$(git show -s --format=%ct $CI_COMMIT_SHA)
+    - export APP_VERSION=$(date -d @${COMMIT_TIME} +'%Y%m%d.%H%M').${CI_COMMIT_SHORT_SHA}
+  script:
+    - sed -i -- "s/%VERSION%/${APP_VERSION}/g"  kubernetes/preprod/deploy.yaml
+    #- kubectl --kubeconfig=/home/gitlab-runner/.kube/config-mari delete -f kubernetes/preprod/deploy.yaml
+    - kubectl --kubeconfig=/home/gitlab-runner/.kube/config-mari apply -f kubernetes/preprod/deploy.yaml
+    - kubectl --kubeconfig=/home/gitlab-runner/.kube/config-mari apply -f kubernetes/preprod/ingress.yaml
+    - echo "send line noti dev room"
+    - 'curl -X POST -H "Authorization: Bearer GdoBOSxvHraGhtK2tgVpZWJujT6EgfF3wYJtsxMqHlT" -F "message=[${CI_PROJECT_NAME} | Pipeline ${CI_COMMIT_SHORT_SHA} deploy success for ${CI_COMMIT_REF_NAME}][version:${APP_VERSION}][${CI_COMMIT_TITLE}][${CI_COMMIT_MESSAGE}] [by ${GITLAB_USER_LOGIN}]" https://notify-api.line.me/api/notify'
+  dependencies:
+    - docker-build
+  when: on_success
